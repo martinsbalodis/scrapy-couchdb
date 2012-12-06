@@ -2,6 +2,10 @@ import couchdb
 from scrapy.conf import settings
 from scrapy import log
 import datetime
+from w3lib.http import headers_dict_to_raw, headers_raw_to_dict
+from scrapy.http import Headers
+from scrapy.responsetypes import responsetypes
+from urlparse import urlparse
 
 class CouchDBPipeline(object):
     def __init__(self):
@@ -40,3 +44,55 @@ class CouchDBPipeline(object):
                     (settings['COUCHDB_SERVER'], settings['COUCHDB_DB']),
                     level=log.DEBUG, spider=spider)  
         return item
+
+
+class CouchDBCacheStorage(object):
+
+    def __init__(self, settings):
+        couch = couchdb.Server(settings['COUCHDB_SERVER'])
+        self.db = couch[settings['COUCHDB_DB']]
+
+    def open_spider(self, spider):
+        pass
+
+    def close_spider(self, spider):
+        pass
+
+    def retrieve_response(self, spider, request):
+        """Return response if present in cache, or None otherwise."""
+        try:
+            document = self.db[self._inverse_url(request.url)]
+        except couchdb.http.ResourceNotFound:
+            return
+            # @TODO expiration
+        body = document['response_body']
+        url = document['response_url']
+        status = document['status']
+        headers = Headers(headers_raw_to_dict(document['response_headers']))
+        encoding = document['encoding']
+        respcls = responsetypes.from_args(headers=headers, url=url)
+        response = respcls(url=url, headers=headers, status=status, body=body,
+                encoding=encoding)
+        return response
+
+    def store_response(self, spider, request, response):
+        """Store the given response in the cache."""
+        data = {
+            '_id': self._inverse_url(request.url),
+            'url': request.url,
+            'method': request.method,
+            'status': response.status,
+            'response_url': response.url,
+            'timestamp': datetime.datetime.now().strftime("%s"),
+            'response_body': response.body,
+            'response_headers': headers_dict_to_raw(response.headers),
+            'request_headers': headers_dict_to_raw(request.headers),
+            'request_body': request.body,
+            'encoding': response.encoding
+        }
+        self.db.save(data)
+
+    def _inverse_url(self, url):
+        elements = urlparse(url)
+        return ".".join(elements.netloc.split('.')[::-1])+':'+elements.scheme\
+               +elements.path+elements.query

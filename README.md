@@ -1,6 +1,7 @@
 Description
 ===========
-It's a pipeline which allow you to store scrapy items in CouchDB database.
+Pipeline which allow you to store scrapy items in CouchDB database.
+Downloader middleware wich will cache downloaded web pages in couchdb.
 
 Install
 =======
@@ -19,6 +20,13 @@ Configure your settings.py:
     COUCHDB_IGNORE_FIELDS = ['visit_id', 'visit_status']
 
 
+    DOWNLOADER_MIDDLEWARES = {
+        'scrapy.contrib.downloadermiddleware.httpcache.HttpCacheMiddleware':543,
+    }
+    HTTPCACHE_ENABLED=True
+    HTTPCACHE_STORAGE='scrapycouchdb.CouchDBCacheStorage'
+
+
 Changelog
 =========
 0.1
@@ -29,7 +37,7 @@ Changelog
 
 Licence
 =======
-Copyright 2011 Julien Duponchelle
+Copyright 2011 Julien Duponchelle, Martins Balodis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
