@@ -88,7 +88,7 @@ class CouchDBCacheStorage(object):
             'status': response.status,
             'response_url': response.url,
             'timestamp': datetime.datetime.now().strftime("%s"),
-            'response_body': response.body.body_as_unicode(),
+            'response_body': response.body_as_unicode(),
             'response_headers': headers_dict_to_raw(response.headers),
             'request_headers': headers_dict_to_raw(request.headers),
             'request_body': request.body,
