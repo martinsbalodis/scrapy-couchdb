@@ -50,7 +50,11 @@ class CouchDBCacheStorage(object):
 
     def __init__(self, settings):
         couch = couchdb.Server(settings['COUCHDB_SERVER'])
-        self.db = couch[settings['COUCHDB_DB']]
+        try:
+            self.db = couch[settings['COUCHDB_DB']]
+        except couchdb.http.ResourceNotFound:
+            couch.create(settings['COUCHDB_DB'])
+            self.db = couch[settings['COUCHDB_DB']]
 
     def open_spider(self, spider):
         pass
